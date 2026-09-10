@@ -1,10 +1,10 @@
-// Three.js Tank Game - Simplified
+// Three.js Tank Game - Bigger Tank
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 1000, 10);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 20, 30);
+camera.position.set(0, 50, 80);
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -53,50 +53,53 @@ class Tank {
         
         this.createTank();
         scene.add(this.group);
-        document.getElementById('status').textContent = '✅ Tank Ready!';
+        document.getElementById('status').textContent = '✅ TANK READY - GO BIG!';
     }
     
     createTank() {
+        // MASSIVE SCALE - 3x bigger!
+        const scale = 3;
+        
         // Hull (body)
-        const hullGeometry = new THREE.BoxGeometry(4, 2, 8);
+        const hullGeometry = new THREE.BoxGeometry(4 * scale, 2 * scale, 8 * scale);
         const hullMaterial = new THREE.MeshPhongMaterial({ color: 0x4a4a4a });
         const hull = new THREE.Mesh(hullGeometry, hullMaterial);
-        hull.position.y = 1;
+        hull.position.y = 1 * scale;
         hull.castShadow = true;
         hull.receiveShadow = true;
         this.group.add(hull);
         
         // Turret (dome)
-        const turretGeometry = new THREE.CylinderGeometry(2, 2, 1.5, 32);
+        const turretGeometry = new THREE.CylinderGeometry(2 * scale, 2 * scale, 1.5 * scale, 32);
         const turretMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
         this.turret = new THREE.Mesh(turretGeometry, turretMaterial);
-        this.turret.position.y = 2.5;
+        this.turret.position.y = 2.5 * scale;
         this.turret.castShadow = true;
         this.turret.receiveShadow = true;
         this.group.add(this.turret);
         
         // Cannon/Gun
-        const cannonGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
+        const cannonGeometry = new THREE.CylinderGeometry(0.3 * scale, 0.3 * scale, 6 * scale, 16);
         const cannonMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
         this.cannon = new THREE.Mesh(cannonGeometry, cannonMaterial);
         this.cannon.rotation.z = Math.PI / 2;
-        this.cannon.position.set(3, 2.5, 0);
+        this.cannon.position.set(3 * scale, 2.5 * scale, 0);
         this.cannon.castShadow = true;
         this.cannon.receiveShadow = true;
         this.turret.add(this.cannon);
         
         // Tracks/Wheels (left)
-        const trackGeometry = new THREE.BoxGeometry(0.5, 1, 8);
+        const trackGeometry = new THREE.BoxGeometry(0.5 * scale, 1 * scale, 8 * scale);
         const trackMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
         const trackLeft = new THREE.Mesh(trackGeometry, trackMaterial);
-        trackLeft.position.set(-1.5, 0.5, 0);
+        trackLeft.position.set(-1.5 * scale, 0.5 * scale, 0);
         trackLeft.castShadow = true;
         trackLeft.receiveShadow = true;
         this.group.add(trackLeft);
         
         // Tracks/Wheels (right)
         const trackRight = new THREE.Mesh(trackGeometry, trackMaterial);
-        trackRight.position.set(1.5, 0.5, 0);
+        trackRight.position.set(1.5 * scale, 0.5 * scale, 0);
         trackRight.castShadow = true;
         trackRight.receiveShadow = true;
         this.group.add(trackRight);
@@ -234,10 +237,10 @@ function animate() {
     }
     
     // Camera follow tank
-    const cameraOffset = new THREE.Vector3(0, 15, -25);
+    const cameraOffset = new THREE.Vector3(0, 50, -80);
     cameraOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), tank.rotation);
     camera.position.lerp(tank.position.clone().add(cameraOffset), 0.1);
-    camera.lookAt(tank.position.clone().add(new THREE.Vector3(0, 5, 0)));
+    camera.lookAt(tank.position.clone().add(new THREE.Vector3(0, 15, 0)));
     
     // Update UI
     document.getElementById('pos').textContent = 
