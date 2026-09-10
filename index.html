@@ -27,6 +27,11 @@
             border: 2px solid #0f0;
             border-radius: 5px;
         }
+        #status {
+            color: #ff0;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
         #instructions {
             position: absolute;
             bottom: 20px;
@@ -42,6 +47,7 @@
 </head>
 <body>
     <div id="ui">
+        <div id="status">⏳ Loading...</div>
         <div>Tank Game</div>
         <div>Position: <span id="pos">0, 0, 0</span></div>
         <div>Rotation: <span id="rot">0°</span></div>
@@ -54,6 +60,8 @@
         <div>Space - Jump</div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@r128/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@r128/examples/js/loaders/MTLLoader.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
