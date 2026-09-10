@@ -52,45 +52,60 @@ class Tank {
         this.gravity = 0.08;
         this.modelLoaded = false;
         
+        this.createFallbackTank(); // Start with fallback, try to load model
         this.loadCustomTank();
         scene.add(this.group);
     }
     
     loadCustomTank() {
-        // Use CORS proxy to load the OBJ file
-        const mtlLoader = new THREE.MTLLoader();
-        const objLoader = new THREE.OBJLoader();
-        
-        // GitHub raw URLs with CORS support
-        const mtlUrl = 'https://raw.githubusercontent.com/titusjorourke-cmd/3dmodletank/main/github.mtl';
-        const objUrl = 'https://raw.githubusercontent.com/titusjorourke-cmd/3dmodletank/main/github.obj';
-        
-        mtlLoader.load(mtlUrl, (materials) => {
-            materials.preload();
-            objLoader.setMaterials(materials);
-            objLoader.load(objUrl, (object) => {
-                object.scale.set(0.5, 0.5, 0.5);
-                object.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
+        try {
+            const objLoader = new THREE.OBJLoader();
+            
+            // Try to load directly from GitHub raw content
+            const objUrl = 'https://cdn.jsdelivr.net/gh/titusjorourke-cmd/3dmodletank@main/github.obj';
+            
+            console.log('Loading tank model from:', objUrl);
+            
+            objLoader.load(
+                objUrl, 
+                (object) => {
+                    console.log('Model loaded successfully!');
+                    // Remove fallback and add real model
+                    while(this.group.children.length > 0) {
+                        this.group.remove(this.group.children[0]);
                     }
-                });
-                this.group.add(object);
-                this.modelLoaded = true;
-                console.log('Tank model loaded!');
-            }, undefined, (error) => {
-                console.error('Error loading OBJ:', error);
-                this.createFallbackTank();
-            });
-        }, undefined, (error) => {
-            console.error('Error loading MTL:', error);
-            this.createFallbackTank();
-        });
+                    
+                    object.scale.set(0.1, 0.1, 0.1);
+                    object.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            child.material = new THREE.MeshPhongMaterial({ 
+                                color: 0x444444,
+                                shininess: 100
+                            });
+                        }
+                    });
+                    this.group.add(object);
+                    this.modelLoaded = true;
+                    document.getElementById('status').textContent = '✅ Custom Tank Loaded!';
+                },
+                (progress) => {
+                    console.log('Loading: ' + Math.round((progress.loaded / progress.total) * 100) + '%');
+                },
+                (error) => {
+                    console.error('Error loading model:', error);
+                    document.getElementById('status').textContent = '⚠️ Using default tank';
+                }
+            );
+        } catch(e) {
+            console.error('Load error:', e);
+            document.getElementById('status').textContent = '❌ Model load failed';
+        }
     }
     
     createFallbackTank() {
-        // Fallback simple tank if model doesn't load
+        // Simple fallback tank
         const hullGeometry = new THREE.BoxGeometry(4, 2, 8);
         const hullMaterial = new THREE.MeshPhongMaterial({ color: 0x4a4a4a });
         const hull = new THREE.Mesh(hullGeometry, hullMaterial);
@@ -107,7 +122,16 @@ class Tank {
         this.turret.receiveShadow = true;
         this.group.add(this.turret);
         
-        this.modelLoaded = true;
+        const cannonGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
+        const cannonMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
+        this.cannon = new THREE.Mesh(cannonGeometry, cannonMaterial);
+        this.cannon.rotation.z = Math.PI / 2;
+        this.cannon.position.set(3, 2.5, 0);
+        this.cannon.castShadow = true;
+        this.cannon.receiveShadow = true;
+        this.turret.add(this.cannon);
+        
+        document.getElementById('status').textContent = '⏳ Loading custom model...';
     }
     
     update(keys) {
@@ -232,10 +256,6 @@ function animate() {
         `${tank.position.x.toFixed(1)}, ${tank.position.y.toFixed(1)}, ${tank.position.z.toFixed(1)}`;
     document.getElementById('rot').textContent = 
         `${(tank.rotation * 180 / Math.PI).toFixed(0)}°`;
-    
-    if (tank.modelLoaded) {
-        document.getElementById('status').textContent = '✅ Tank Loaded';
-    }
     
     renderer.render(scene, camera);
 }
