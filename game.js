@@ -1,4 +1,4 @@
-// Three.js Tank Game with Custom Tank Model
+// Three.js Tank Game - Simplified
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 1000, 10);
@@ -50,62 +50,14 @@ class Tank {
         this.isJumping = false;
         this.jumpForce = 1.5;
         this.gravity = 0.08;
-        this.modelLoaded = false;
         
-        this.createFallbackTank(); // Start with fallback, try to load model
-        this.loadCustomTank();
+        this.createTank();
         scene.add(this.group);
+        document.getElementById('status').textContent = '✅ Tank Ready!';
     }
     
-    loadCustomTank() {
-        try {
-            const objLoader = new THREE.OBJLoader();
-            
-            // Try to load directly from GitHub raw content
-            const objUrl = 'https://cdn.jsdelivr.net/gh/titusjorourke-cmd/3dmodletank@main/github.obj';
-            
-            console.log('Loading tank model from:', objUrl);
-            
-            objLoader.load(
-                objUrl, 
-                (object) => {
-                    console.log('Model loaded successfully!');
-                    // Remove fallback and add real model
-                    while(this.group.children.length > 0) {
-                        this.group.remove(this.group.children[0]);
-                    }
-                    
-                    object.scale.set(0.1, 0.1, 0.1);
-                    object.traverse((child) => {
-                        if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                            child.material = new THREE.MeshPhongMaterial({ 
-                                color: 0x444444,
-                                shininess: 100
-                            });
-                        }
-                    });
-                    this.group.add(object);
-                    this.modelLoaded = true;
-                    document.getElementById('status').textContent = '✅ Custom Tank Loaded!';
-                },
-                (progress) => {
-                    console.log('Loading: ' + Math.round((progress.loaded / progress.total) * 100) + '%');
-                },
-                (error) => {
-                    console.error('Error loading model:', error);
-                    document.getElementById('status').textContent = '⚠️ Using default tank';
-                }
-            );
-        } catch(e) {
-            console.error('Load error:', e);
-            document.getElementById('status').textContent = '❌ Model load failed';
-        }
-    }
-    
-    createFallbackTank() {
-        // Simple fallback tank
+    createTank() {
+        // Hull (body)
         const hullGeometry = new THREE.BoxGeometry(4, 2, 8);
         const hullMaterial = new THREE.MeshPhongMaterial({ color: 0x4a4a4a });
         const hull = new THREE.Mesh(hullGeometry, hullMaterial);
@@ -114,6 +66,7 @@ class Tank {
         hull.receiveShadow = true;
         this.group.add(hull);
         
+        // Turret (dome)
         const turretGeometry = new THREE.CylinderGeometry(2, 2, 1.5, 32);
         const turretMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
         this.turret = new THREE.Mesh(turretGeometry, turretMaterial);
@@ -122,6 +75,7 @@ class Tank {
         this.turret.receiveShadow = true;
         this.group.add(this.turret);
         
+        // Cannon/Gun
         const cannonGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
         const cannonMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
         this.cannon = new THREE.Mesh(cannonGeometry, cannonMaterial);
@@ -131,10 +85,25 @@ class Tank {
         this.cannon.receiveShadow = true;
         this.turret.add(this.cannon);
         
-        document.getElementById('status').textContent = '⏳ Loading custom model...';
+        // Tracks/Wheels (left)
+        const trackGeometry = new THREE.BoxGeometry(0.5, 1, 8);
+        const trackMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+        const trackLeft = new THREE.Mesh(trackGeometry, trackMaterial);
+        trackLeft.position.set(-1.5, 0.5, 0);
+        trackLeft.castShadow = true;
+        trackLeft.receiveShadow = true;
+        this.group.add(trackLeft);
+        
+        // Tracks/Wheels (right)
+        const trackRight = new THREE.Mesh(trackGeometry, trackMaterial);
+        trackRight.position.set(1.5, 0.5, 0);
+        trackRight.castShadow = true;
+        trackRight.receiveShadow = true;
+        this.group.add(trackRight);
     }
     
     update(keys) {
+        // Movement
         const moveDirection = new THREE.Vector3();
         
         if (keys['w'] || keys['W']) {
@@ -156,37 +125,53 @@ class Tank {
         this.velocity.x = moveDirection.x * this.speed;
         this.velocity.z = moveDirection.z * this.speed;
         
+        // Gravity and jumping
         this.velocity.y -= this.gravity;
         
         if (keys[' '] && this.position.y <= 0.1) {
             this.velocity.y = this.jumpForce;
         }
         
+        // Apply velocity
         this.position.add(this.velocity);
         
+        // Keep on ground
         if (this.position.y < 0) {
             this.position.y = 0;
             this.velocity.y = 0;
         }
         
+        // Update group position and rotation
         this.group.position.copy(this.position);
         this.group.rotation.y = this.rotation;
     }
     
     updateTurret(mouseX, mouseY) {
+        // Horizontal turret rotation based on mouse X
         const center = window.innerWidth / 2;
         const offset = mouseX - center;
         this.turretRotation = (offset / center) * 0.3;
+        this.turret.rotation.z = this.turretRotation;
         
+        // Vertical cannon pitch based on mouse Y
         const centerY = window.innerHeight / 2;
         const offsetY = mouseY - centerY;
         this.turretPitch = (offsetY / centerY) * 0.3;
+        this.cannon.rotation.x = this.turretPitch;
     }
     
     fire() {
-        const projectile = new Projectile(this.position.clone().add(new THREE.Vector3(0, 5, 0)), new THREE.Vector3(1, 0, 0));
+        // Create a projectile
+        const projectile = new Projectile(this.cannon.getWorldPosition(new THREE.Vector3()), this.getCannonDirection());
         projectiles.push(projectile);
         scene.add(projectile.mesh);
+    }
+    
+    getCannonDirection() {
+        const direction = new THREE.Vector3(1, 0, 0);
+        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation + this.turretRotation);
+        direction.applyAxisAngle(new THREE.Vector3(0, 0, 1), this.turretPitch);
+        return direction;
     }
 }
 
@@ -201,11 +186,11 @@ class Projectile {
         this.mesh.receiveShadow = true;
         
         this.velocity = direction.multiplyScalar(1.5);
-        this.lifespan = 300;
+        this.lifespan = 300; // frames
     }
     
     update() {
-        this.velocity.y -= 0.05;
+        this.velocity.y -= 0.05; // gravity
         this.mesh.position.add(this.velocity);
         this.lifespan--;
     }
@@ -239,6 +224,7 @@ function animate() {
     tank.update(keys);
     tank.updateTurret(mouseX, mouseY);
     
+    // Update projectiles
     for (let i = projectiles.length - 1; i >= 0; i--) {
         projectiles[i].update();
         if (projectiles[i].lifespan <= 0 || projectiles[i].mesh.position.y < -50) {
@@ -247,11 +233,13 @@ function animate() {
         }
     }
     
+    // Camera follow tank
     const cameraOffset = new THREE.Vector3(0, 15, -25);
     cameraOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), tank.rotation);
     camera.position.lerp(tank.position.clone().add(cameraOffset), 0.1);
     camera.lookAt(tank.position.clone().add(new THREE.Vector3(0, 5, 0)));
     
+    // Update UI
     document.getElementById('pos').textContent = 
         `${tank.position.x.toFixed(1)}, ${tank.position.y.toFixed(1)}, ${tank.position.z.toFixed(1)}`;
     document.getElementById('rot').textContent = 
